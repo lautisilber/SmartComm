@@ -65,7 +65,7 @@
  * This class is passed by pointer to the callbacks of the commands. These classes provide access to the arguments that were
  * received in the message alongside the command.
  * 
- * Of note is the structure of the callback. The function type is void (*smartCmdCB_t)(Stream*, SmartCmdArguments*) which means
+ * Of note is the structure of the callback. The function type is void (*smartCmdCB_t)(Stream*, const SmartCmdArguments*, const char*) which means
  * a function like:
  *     void cmd(Stream *stream, const SmartCmdArguments *args, const char *cmd) {
  *         ...
