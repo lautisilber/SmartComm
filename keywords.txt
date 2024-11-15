@@ -1,0 +1,13 @@
+# Datatypes (KEYWORD1)
+SmartCmdArguments    KEYWORD1
+SmartCmdBase         KEYWORD1
+SmartCmd             KEYWORD1
+SmartCmdF            KEYWORD1
+
+# Methods and Functions (KEYWORD2)
+SMART_CMD_CREATE     KEYWORD2
+SMART_CMD_CREATE_RAM KEYWORD2
+
+# Instances (KEYWORD2)
+
+# Constants (LITERAL1)
