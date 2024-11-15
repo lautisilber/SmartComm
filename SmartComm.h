@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include <limits.h>
 
+#define ARRAY_LENGTH(a) sizeof(a)/sizeof(a[0])
+
 #ifndef MAX_ARGUMENTS
 #define MAX_ARGUMENTS 16 // lim of args is actually MAX_ARGUMENTS-1 since the first argument is actually the command
 #else
@@ -150,22 +152,23 @@ struct SmartCmdArguments
 {
 private:
     const char *const *const _args;
+    const char *arg(_smart_comm_size_t n) const;
 
 public:
     const _smart_comm_size_t N = 0;
 
     SmartCmdArguments(_smart_comm_size_t n, const char *const args[MAX_ARGUMENTS]);
-    const char *arg(_smart_comm_size_t n) const;
-    bool toInt(_smart_comm_size_t n, long *i);
-
-    bool toBool(_smart_comm_size_t n, bool *b);
+    // bool toInt(_smart_comm_size_t n, long *i);
+    // bool toBool(_smart_comm_size_t n, bool *b);
+    template <typename T>
+    bool to(_smart_comm_size_t n, T *t) const;
 };
 
 
 /// SmartCmds /////////////////////////////////////////////////////////////////////////////////
 
 typedef void (*smartCmdCB_t)(Stream*, const SmartCmdArguments*, const char*);
-typedef void (*serialDefaultCommandCB_t)(Stream*, const char*);
+typedef void (*serialDefaultCmdCB_t)(Stream*, const char*);
 
 void __defaultCommandNotRecognizedCB(Stream *stream, const char *cmd);
 
@@ -224,19 +227,19 @@ class SmartComm
 private:
     Stream *const _stream = nullptr;
     const SmartCmdBase *const *const _cmds;
-    serialDefaultCommandCB_t _defaultCB;
+    serialDefaultCmdCB_t _defaultCB;
     const char _endChar, _sepChar;
     char _buffer[STREAM_BUFFER_LEN+1] = {'\0'};
     _smart_comm_size_t _bufferPos = 0;
 
 public:
-    constexpr SmartComm(Stream *stream, const SmartCmdBase *const cmds[N_CMDS], char endChar = '\n', char sepChar = ' ', serialDefaultCommandCB_t defaultCB=__defaultCommandNotRecognizedCB);
+    constexpr SmartComm(const SmartCmdBase *const cmds[N_CMDS], Stream &stream=Serial, char endChar = '\n', char sepChar = ' ', serialDefaultCmdCB_t defaultCB=__defaultCommandNotRecognizedCB);
     void tick();
 };
 
 template<_smart_comm_size_t N_CMDS>
-constexpr SmartComm<N_CMDS>::SmartComm(Stream *stream, const SmartCmdBase *const cmds[N_CMDS], char endChar, char sepChar, serialDefaultCommandCB_t defaultCB)
-: _stream(stream), _cmds(cmds), _defaultCB(defaultCB), _endChar(endChar), _sepChar(sepChar)
+constexpr SmartComm<N_CMDS>::SmartComm(const SmartCmdBase *const cmds[N_CMDS], Stream &stream, char endChar, char sepChar, serialDefaultCmdCB_t defaultCB)
+: _cmds(cmds), _stream(&stream), _defaultCB(defaultCB), _endChar(endChar), _sepChar(sepChar)
 {
     static_assert(N_CMDS <= MAX_COMMANDS, "Can't have this many commands");
 }

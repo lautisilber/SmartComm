@@ -7,22 +7,146 @@ SmartCmdArguments::SmartCmdArguments(_smart_comm_size_t n, const char *const arg
 {}
 const char *SmartCmdArguments::arg(_smart_comm_size_t n) const
 {
-    if (n >= N) return nullptr;
+    if (n >= N) return NULL;
     return _args[n];
 }
-bool SmartCmdArguments::toInt(_smart_comm_size_t n, long *i)
+template <>
+bool SmartCmdArguments::to<const char>(_smart_comm_size_t n, const char *str) const
 {
-    const char *str = arg(n);
+    const char *temp = arg(n);
+    if (temp == NULL) return false;
+    str = temp;
+    return true;
+}
+template <>
+bool SmartCmdArguments::to<String>(_smart_comm_size_t n, String *str) const
+{
+    const char *temp = arg(n);
+    if (temp == NULL) return false;
+    *str = temp;
+}
+static bool __to_long(const char *str, long *l)
+{
     if (str == nullptr) return false;
 
     char *endptr;
-    *i = strtol(str, &endptr, 10);
-    return str[0] != '\0' && *endptr == '\0';
+    long temp = strtol(str, &endptr, 10);
+    if (str[0] == '\0' || *endptr != '\0') return false;
+    *l = temp;
+    return true;
 }
-bool SmartCmdArguments::toBool(_smart_comm_size_t n, bool *b)
+static bool __to_ulong(const char *str, unsigned long *ul)
+{
+    if (str == nullptr) return false;
+
+    char *endptr;
+    unsigned long temp = strtoul(str, &endptr, 10);
+    if (str[0] == '\0' || *endptr != '\0') return false;
+    *ul = temp;
+    return true;
+}
+static bool __to_number(const char *str, long *l, long max, long min)
+{
+    long temp;
+    if (!__to_long(str, &temp)) return false;
+    if (temp > max || temp < min) return false;
+    *l = temp;
+    return true;
+}
+static bool __to_unumber(const char *str, unsigned long *ul, unsigned long max)
+{
+    unsigned long temp;
+    if (!__to_ulong(str, &temp)) return false;
+    if (temp > max) return false;
+    *ul = temp;
+    return true;
+}
+template <>
+bool SmartCmdArguments::to<long>(_smart_comm_size_t n, long *t) const
+{
+    return __to_long(arg(n), t);
+}
+template <>
+bool SmartCmdArguments::to<unsigned long>(_smart_comm_size_t n, unsigned long *t) const
+{
+    return __to_ulong(arg(n), t);
+}
+template <>
+bool SmartCmdArguments::to<int>(_smart_comm_size_t n, int *t) const
+{
+    long l;
+    if (!__to_number(arg(n), &l, INT_MAX, INT_MIN)) return false;
+    *t = static_cast<int>(l);
+    return true;
+}
+template <>
+bool SmartCmdArguments::to<unsigned int>(_smart_comm_size_t n, unsigned int *t) const
+{
+    unsigned long ul;
+    if (!__to_unumber(arg(n), &ul, UINT_MAX)) return false;
+    *t = static_cast<unsigned int>(ul);
+    return true;
+}
+template <>
+bool SmartCmdArguments::to<short>(_smart_comm_size_t n, short *t) const
+{
+    long l;
+    if (!__to_number(arg(n), &l, SHRT_MAX, SHRT_MIN)) return false;
+    *t = static_cast<short>(l);
+    return true;
+}
+template <>
+bool SmartCmdArguments::to<unsigned short>(_smart_comm_size_t n, unsigned short *t) const
+{
+    unsigned long ul;
+    if (!__to_unumber(arg(n), &ul, USHRT_MAX)) return false;
+    *t = static_cast<unsigned short>(ul);
+    return true;
+}
+template <>
+bool SmartCmdArguments::to<char>(_smart_comm_size_t n, char *t) const
+{
+    long l;
+    if (!__to_number(arg(n), &l, CHAR_MAX, CHAR_MIN)) return false;
+    *t = static_cast<char>(l);
+    return true;
+}
+template <>
+bool SmartCmdArguments::to<unsigned char>(_smart_comm_size_t n, unsigned char *t) const
+{
+    unsigned long ul;
+    if (!__to_unumber(arg(n), &ul, UCHAR_MAX)) return false;
+    *t = static_cast<unsigned char>(ul);
+    return true;
+}
+static bool __charIsNumber(char c)
+{
+    return c >= 48 && c <= 57;
+}
+template <>
+bool SmartCmdArguments::to<double>(_smart_comm_size_t n, double *t) const
 {
     const char *str = arg(n);
-    if (str == nullptr) return false;
+    if (str == NULL) return false;
+    // 
+    double temp = atof(str);
+    if (temp == 0.0 && str[0] != '0') return false;
+    *t = temp;
+    return true;
+}
+template <>
+bool SmartCmdArguments::to<float>(_smart_comm_size_t n, float *t) const
+{
+    double d;
+    if (!to<double>(n, &d)) return false;
+    *t = d;
+    return true;
+}
+template <>
+bool SmartCmdArguments::to<bool>(_smart_comm_size_t n, bool *t) const
+{
+    const char *str = arg(n);
+    if (str == NULL) return false;
 
     if (
         #if defined(ARDUINO_ARCH_AVR)
@@ -34,7 +158,7 @@ bool SmartCmdArguments::toBool(_smart_comm_size_t n, bool *b)
         #endif
     )
     {
-        *b = true;
+        *t = true;
         return true;
     }
 
@@ -48,12 +172,11 @@ bool SmartCmdArguments::toBool(_smart_comm_size_t n, bool *b)
         #endif
     )
     {
-        *b = false;
+        *t = false;
         return true;
     }
     return false;
 }
-
 
 
 /// SmartCmds /////////////////////////////////////////////////////////////////////////////////
@@ -101,25 +224,22 @@ static void __trimChar(char *&str, char c)
     // this modifies the original str. it returns a new pointer (inside the original str)
     // the str argument should be passed as *&a if a is a (char *)
     // https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
-    if (c == '\0' || str == nullptr || *str == '\0') {
+    if (c == '\0' || str == NULL || *str == '\0') {
         return; // Nothing to trim
     }
 
-    // Move front pointer forward to skip leading `c` characters
+    // remove from front
     while (*str == c)
         ++str;
 
-    // Define the end pointer to find the end of the trimmed string
-    char *endp, *originalEndp;
-    originalEndp = endp = str + strlen(str) - 1;
+    char *endp = str + strlen(str) - 1;
+    // if(endp <= str) return;
 
-    // Move end pointer backward to skip trailing `c` characters
-    while (endp > str && *endp == c)
+    // remove from back
+    // if (endp - str < 2) return;
+    while (*endp == c && endp > str)
         --endp;
-
-    // Place the null terminator after the last valid character
-    if (endp < originalEndp)
-        *(endp + 1) = '\0';
+    *(endp+1) = '\0';
 }
 
 static void __removeConsecutiveDuplicates(char *&str, char c)
@@ -133,41 +253,39 @@ static void __removeConsecutiveDuplicates(char *&str, char c)
     // characters c are after index i. if its one, we continue incrementing i. if there are more,
     // we count how many there are before the caracter is no longer c. then we move the whole str
     // that's on the right side of i to overwrite the excess of c characters
-
-    if (c == '\0' || str == nullptr || *str == '\0') {
+    if (c == '\0' || str == NULL || *str == '\0') {
         return; // Nothing to remove
     }
     _smart_comm_size_t len = strlen(str);
     if (len == 1) return;
     else if (len == 2)
     {
-        if (*str == c && *(str + 1) == c)
-        {
-            *(str + 1) = '\0';
-            return;
-        }
+        if (*str == c && *(str+1) == c)
+            *(str+1) = '\0';
+        return;
     }
 
-    char *endp, *p;
-    endp = str + len - 1;
-    
-    #ifndef __AVR__ // maybe a bit overkill for avr program size
-    // remove all duplicates from start
-    while (*str == c && *(str + 1) == c)
-        ++str;
-    // remove all duplicates from end
-    while (*endp == c && *(endp - 1) == c)
-        --endp;
-    *(endp + 1) = '\0';
-    #endif
+    char *endp = str + len - 1;
 
-    // remove duplicates from center
+    // remove front
+    while (*str == c && *(str+1) == c)
+        ++str;
+    // if (str >= endp-1) return;
+
+    // remove back
+    while (*endp == c && *(endp-1) == c && endp > str+1)
+        --endp;
+    if (endp <= str+1)
+    {
+        *(endp+1) = '\0';
+        return;
+    }
+
+    // remove center
     _smart_comm_size_t nConsec = 0;
-    len = endp - str + 1;
-    for (p = str; p < endp; ++p)
+    for (char *p = str+1; p < endp; ++p)
     {
         // count how many consecutives
-        // nConsec = 0;
         if (*p == c)
         {
             while (*(p + nConsec + 1) == c)
@@ -177,72 +295,67 @@ static void __removeConsecutiveDuplicates(char *&str, char c)
         // shift all chars to the left nConsec places
         if (nConsec)
         {
-            // for (_smart_comm_size_t i = 0; i < len; i++)
-            //     *(p+i) = *(p+i+nConsec);
-            memmove(p, p+nConsec, len);
+            memmove(p + 1, p + nConsec + 1, endp-p);
+            // memmove(str+i+1, str+i+1+nConsec, len-nConsec);
             // update strlen(p) == len accordingly
-            len -= nConsec;
+            endp -= nConsec;
             nConsec = 0;
         }
-        --len;
     }
+    *(endp+1) = '\0';
 }
 
-static bool __isCharUnwanted(char c, char endChar, char sepChar)
+template <typename F>
+static void __removeUnwantedChars(char *&str, const F &isUnwanted)
 {
-    return !(c == endChar || c == sepChar || (c > 32 && c < 127) || c == '\0');
-}
-
-static void __removeUnwantedChars(char *&str, char endChar, char sepChar)
-{
-    if (str == nullptr || *str == '\0') {
+    if (str == NULL || *str == '\0') {
         return; // Nothing to remove
     }
 
     _smart_comm_size_t len = strlen(str);
     if (len == 1)
     {
-        if (__isCharUnwanted(*str, endChar, sepChar))
+        if (isUnwanted(*str))
             *str = '\0';
         return;
     }
 
-    char *endp, *originalEndp, *p;
-    originalEndp = endp = str + len - 1;
+    char *endp = str + len - 1;
 
-    #ifndef __AVR__ // maybe a bit overkill for avr program size
     // remove from front
-    while (__isCharUnwanted(*str, endChar, sepChar))
+    while (isUnwanted(*str))
         ++str;
 
     // remove from tail
-    while (__isCharUnwanted(*endp, endChar, sepChar) && endp > str)
+    while (isUnwanted(*endp) && endp > str)
         --endp;
-    #endif
+    if (endp <= str)
+    {
+        *(endp+1) = '\0';
+        return;
+    }
 
     // remove from center
     _smart_comm_size_t nConsec = 0;
-    len = endp - str + 1;
-    for (p = str; p < endp; ++p)
+    for (char *p = str+1; p < endp; ++p)
     {
-        if (__isCharUnwanted(*p, endChar, sepChar))
-        {
-            while (__isCharUnwanted(*(p + nConsec + 1), endChar, sepChar))
-                ++nConsec;
-        }
+        while (isUnwanted(*(p + nConsec)))
+            ++nConsec;
 
         // shift all chars to the left nConsec places
         if (nConsec)
         {
-            // for (_smart_comm_size_t i = 0; i < len; i++)
-            //     *(p+i) = *(p+i+nConsec);
-            memmove(p, p+nConsec, len);
-            // update strlen(p) == len accordingly
-            len -= nConsec;
+            memmove(p, p+nConsec, endp-p);
+            endp -= nConsec;
             nConsec = 0;
         }
-        --len;
     }
+    *(endp+1) = '\0';
+}
+
+static bool __isCharUnwanted(char c, char endChar, char sepChar)
+{
+    return !(c == endChar || c == sepChar || (c > 32 && c < 127) || c == '\0');
 }
 
 bool __extractArguments(char *buffer, char endChar, char sepChar, char *&command, char *args[MAX_ARGUMENTS], _smart_comm_size_t &nArgs)
@@ -257,7 +370,7 @@ bool __extractArguments(char *buffer, char endChar, char sepChar, char *&command
     __removeConsecutiveDuplicates(buffer, sepChar);
 
     // remove unwanted chars
-    __removeUnwantedChars(buffer, endChar, sepChar);
+    __removeUnwantedChars(buffer, [endChar, sepChar](char c){ return __isCharUnwanted(c, endChar, sepChar); });
 
     _SMART_COMM_DEBUG_PRINT_STATIC("SMARTCOMM DEBUG: After conditioning, the message is '");_SMART_COMM_DEBUG_PRINT(buffer);_SMART_COMM_DEBUG_PRINT_STATIC("'\n");
 
