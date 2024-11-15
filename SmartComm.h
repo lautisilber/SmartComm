@@ -79,8 +79,9 @@
  * 
  * This library was written with memory footprint in mind and tries to reuse all buffers in a way the least amount of memory is
  * used at the same time. Because of this it could handle long messages and many different commands simultaneously. It was also
- * designed to allocate no memory on the heap. Because of this the setup of the commands and callbacks may be a bit more involve
- * than you might expect. However you'll see it's quite intuitive.
+ * designed to allocate no memory on the heap (except when using PROGMEM variables where copying the PROGMEM data too RAM is
+ * non-avoidable). Because of this the setup of the commands and callbacks may be a bit more involve than you might expect.
+ * However you'll see it's quite intuitive.
  * 
  * You can use the helper macro SMART_CMD_CREATE to more easily create commands. The macro is used in the following way.
  * SMART_CMD_CREATE(className, command, callback);
