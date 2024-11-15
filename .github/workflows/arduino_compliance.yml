@@ -1,1 +1,2 @@
 name: arduino/arduino-lint-action
+on: [push]
