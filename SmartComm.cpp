@@ -24,6 +24,7 @@ bool SmartCmdArguments::to<String>(_smart_comm_size_t n, String *str) const
     const char *temp = arg(n);
     if (temp == NULL) return false;
     *str = temp;
+    return true;
 }
 static bool __to_long(const char *str, long *l)
 {
