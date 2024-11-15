@@ -5,3 +5,5 @@ This library simplifies inter-device communication. With it you can make your de
 This library has been designed to use only stack memory and have as small a memory footprint as possible, while still being permormant.
 
 To use SmartComm, you'll define SmartCmd (smart commands) which store a command and a callback. The callback is called whenever the command is received and the arguments passed in the message are be accessible as arguments of the callback. The message structure is customaizable at compile time to fit all needs, without overhead.
+
+A lot of the library's functionality is described at the beginning of the examples so I encourage you to treat them as documentation.

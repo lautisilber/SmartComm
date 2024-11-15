@@ -123,7 +123,7 @@
  * that fits best your project (Just in case you need a tie-breaker, PROGMEM variables might be a bit slower to work with)
  */
 
-#define _SMART_COMM_DEBUG
+// #define _SMART_COMM_DEBUG
 
 
 #ifdef _SMART_COMM_DEBUG

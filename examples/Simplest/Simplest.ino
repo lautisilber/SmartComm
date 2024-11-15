@@ -88,10 +88,13 @@ SMART_CMD_CREATE(cmdOne, "One", [](Stream *stream, const SmartCmdArguments *args
     stream->println("With the arguments:");
     for (int i = 0; i < args->N; i++)
     {
+        String str;
+        args->to(i, &str);
+
         stream->print("\t ");
         stream->print(i);
         stream->print(": ");
-        stream->println(args->arg(i));
+        stream->println(str);
     }
 });
 
