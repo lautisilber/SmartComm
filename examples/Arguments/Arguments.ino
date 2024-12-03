@@ -43,8 +43,8 @@ SMART_CMD_CREATE(cmdArgs, "Args", [](Stream *stream, const SmartCmdArguments *ar
     bool b;
     int i;
     float f;
-    //! char *str;
     String str;
+    const char *c_str;
 
     stream->print("Received ");
     stream->print(args->N);
@@ -69,10 +69,14 @@ SMART_CMD_CREATE(cmdArgs, "Args", [](Stream *stream, const SmartCmdArguments *ar
             stream->print("\t\tCan be cast to float with value ");
             stream->println(f);
         }
-        //! if (args->to(n, str))
         if (args->to(n, &str))
         {
             stream->print("\t\tCan be cast to String with value ");
+            stream->println(str);
+        }
+        if (args->to(n, &c_str))
+        {
+            stream->print("\t\tCan be cast to const char* with value ");
             stream->println(str);
         }
     }
